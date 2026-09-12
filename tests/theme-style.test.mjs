@@ -15,10 +15,12 @@ try {
   } = await import(pathToFileURL(join(ROOT, 'theme-style.mjs')).href);
 
   // styleTokensFrom: recognized keys → css vars; ignore unknown/non-string/missing
-  const t = styleTokensFrom({ accent_color: '#2563eb', font_family: 'Outfit, sans-serif', font_size: '10pt', margin: '0.5in', nope: 'x', font_weight: 700 });
-  if (t['--accent-color'] === '#2563eb' && t['--font-family'] === 'Outfit, sans-serif' && t['--font-size'] === '10pt' && t['--page-margin'] === '0.5in'
-      && !('--font-weight' in t) && Object.keys(t).length === 4) {
-    pass('styleTokensFrom maps the 4 recognized keys and ignores unknown/non-string');
+  const t = styleTokensFrom({ accent_color: '#2563eb', secondary_color: '#7c3aed', tag_color: '#0e7490', tag_bg: '#ecfeff', tag_border: '#a5f3fc', font_family: 'Outfit, sans-serif', font_size: '10pt', margin: '0.5in', nope: 'x', font_weight: 700 });
+  if (t['--accent-color'] === '#2563eb' && t['--secondary-color'] === '#7c3aed' && t['--tag-color'] === '#0e7490'
+      && t['--tag-bg'] === '#ecfeff' && t['--tag-border'] === '#a5f3fc'
+      && t['--font-family'] === 'Outfit, sans-serif' && t['--font-size'] === '10pt' && t['--page-margin'] === '0.5in'
+      && !('--font-weight' in t) && Object.keys(t).length === 8) {
+    pass('styleTokensFrom maps the 8 recognized keys and ignores unknown/non-string');
   } else {
     fail(`styleTokensFrom => ${JSON.stringify(t)}`);
   }
@@ -142,6 +144,36 @@ try {
       fail(`page-margin cascade order/value wrong: root=${rootDefaultIdx} override=${overrideIdx} pageSetup=${pageSetupIdx} usesVar=${pageSetupUsesVar}`);
     }
   }
+  // The palette tokens (secondary accent + tag tint) were hardcoded colors until a
+  // profile had to recolor them, and a template edit is reverted by every
+  // `update-system.mjs apply`. Two things must hold: the template still READS each
+  // one (or an override is inert), and each :root default is byte-identical to the
+  // literal it replaced (or every existing CV silently changes color).
+  {
+    const tplSrc = readFileSync(join(ROOT, 'templates/cv-template.html'), 'utf-8');
+    const DEFAULTS = {
+      '--secondary-color': 'hsl(270, 70%, 45%)',
+      '--tag-color':      'hsl(187, 74%, 28%)',
+      '--tag-bg':         'hsl(187, 40%, 95%)',
+      '--tag-border':     'hsl(187, 40%, 88%)',
+    };
+    const missingDefault = Object.entries(DEFAULTS).filter(([v, d]) => !tplSrc.includes(`${v}: ${d};`));
+    const unreferenced = Object.keys(DEFAULTS).filter(v => !tplSrc.includes(`var(${v})`));
+    // a var that resolves to itself silently evaluates to nothing
+    const selfReferential = Object.keys(DEFAULTS).filter(v => tplSrc.includes(`${v}: var(${v})`));
+    if (!missingDefault.length && !unreferenced.length && !selfReferential.length) {
+      pass('palette tokens keep the exact colors they replaced and are read by the template');
+    } else {
+      fail(`palette tokens: wrong/missing default=${JSON.stringify(missingDefault)} unreferenced=${unreferenced} selfReferential=${selfReferential}`);
+    }
+    // and no palette literal is left behind where a profile cannot reach it
+    const strays = tplSrc.split('\n')
+      .filter(l => /hsl\(270, 70%, 45%\)|hsl\(187, 74%, 28%\)|hsl\(187, 40%, (?:95|88)%\)/.test(l))
+      .filter(l => !/^\s*--/.test(l.trim()) ? true : false);
+    if (!strays.length) pass('no palette color is still hardcoded outside :root');
+    else fail(`palette colors still hardcoded: ${JSON.stringify(strays)}`);
+  }
+
 } catch (e) {
   fail(`theme-style tests crashed: ${e.message}`);
 }

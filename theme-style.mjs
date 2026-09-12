@@ -7,7 +7,11 @@
  * Users declare a `style:` block in config/profile.yml:
  *
  *   style:
- *     accent_color: "#2563eb"
+ *     accent_color:   "#2563eb"
+ *     secondary_color: "#7c3aed"   # secondary accent: company/school/cert lines, header gradient
+ *     tag_color:      "#0e7490"   # competency-tag text
+ *     tag_bg:         "#ecfeff"   # competency-tag and project-tech fill
+ *     tag_border:     "#a5f3fc"   # competency-tag border
  *     font_family:  "Outfit, Inter, sans-serif"
  *     font_size:    "10pt"
  *     margin:       "0.5in"
@@ -31,10 +35,14 @@ import * as yaml from 'js-yaml';
 // Recognized style tokens → the CSS custom property each maps to. Anything not
 // listed here is ignored, so a typo or an unrelated `style:` key is inert.
 export const STYLE_VAR_MAP = {
-  accent_color: '--accent-color',
-  font_family:  '--font-family',
-  font_size:    '--font-size',
-  margin:       '--page-margin',
+  accent_color:   '--accent-color',
+  secondary_color: '--secondary-color',
+  tag_color:      '--tag-color',
+  tag_bg:         '--tag-bg',
+  tag_border:     '--tag-border',
+  font_family:    '--font-family',
+  font_size:      '--font-size',
+  margin:         '--page-margin',
 };
 
 /**
